@@ -105,35 +105,35 @@ The system uses a `db.json` file as a simulated database. This file stores persi
 #### Home Page
 
 <div style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
-    <img src="./prints/inicio_desktop.png" style="height: 400px; object-fit: contain;">
-    <img src="./prints/inicio_mobile.png" style="height: 400px; object-fit: contain;">
+    <img src="./prints/inicio_desktop.png" style="height: 325px; object-fit: contain;">
+    <img src="./prints/inicio_mobile.png" style="height: 325px; object-fit: contain;">
 </div>
 
 #### Dashboard
 
 <div style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
-    <img src="./prints/dashboard_desktop.png" style="height: 400px; object-fit: contain;">
-    <img src="./prints/dashboard_mobile.png" style="height: 400px; object-fit: contain;">
+    <img src="./prints/dashboard_desktop.png" style="height: 325px; object-fit: contain;">
+    <img src="./prints/dashboard_mobile.png" style="height: 325px; object-fit: contain;">
 </div>
 
 #### Profile
 
 <div style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
-    <img src="./prints/perfil_desktop.png" style="height: 400px; object-fit: contain;">
-    <img src="./prints/perfil_mobile.png" style="height: 400px; object-fit: contain;">
+    <img src="./prints/perfil_desktop.png" style="height: 420px; object-fit: contain;">
+    <img src="./prints/perfil_mobile.png" style="height: 420px; object-fit: contain;">
 </div>
 
 #### Registration
 
 <div style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
-    <img src="./prints/registro_desktop.png" style="height: 400px; object-fit: contain;">
-    <img src="./prints/registro_mobile.png" style="height: 400px; object-fit: contain;">
+    <img src="./prints/registro_desktop.png" style="height: 325px; object-fit: contain;">
+    <img src="./prints/registro_mobile.png" style="height: 325px; object-fit: contain;">
 </div>
 
 #### Login
 
 <div style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
-    <img src="./prints/login_desktop.png" style="height: 400px; object-fit: contain;">
-    <img src="./prints/login_mobile.png" style="height: 400px; object-fit: contain;">
+    <img src="./prints/login_desktop.png" style="height: 325px; object-fit: contain;">
+    <img src="./prints/login_mobile.png" style="height: 325px; object-fit: contain;">
 </div>
 
