@@ -1,0 +1,11 @@
+[
+    {
+        "id": 1,
+        "nome": "Maria",
+        "email": "maria@example.com",
+        "senha": "$2y$10$\/nAx3hfS.4omPjuUFSrWwuBGZs.eZTQtUnY9WNf76aILdeXDP3puy",
+        "intervalo": 10800,
+        "streak": 1,
+        "ultimoGole": "2025-08-07 18:05:46"
+    }
+]
