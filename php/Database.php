@@ -21,7 +21,9 @@ class Database {
     }
 
     public function salvar(): void {
-        file_put_contents($this->arquivo, json_encode($this->dados, JSON_PRETTY_PRINT));
+        $temp = $this->arquivo . '.tmp';
+        file_put_contents($temp, json_encode($this->dados, JSON_PRETTY_PRINT));
+        rename($temp, $this->arquivo);
     }
 
     public function todos(): array {
@@ -34,15 +36,11 @@ class Database {
     }
 
     private function getProximoId(): int {
-        $maiorId = 0;
-
-        foreach ($this->dados as $usuario) {
-            if (isset($usuario['id']) && $usuario['id'] > $maiorId) {
-                $maiorId = $usuario['id'];
-            }
+        if (empty($this->dados)) {
+            return 1;
         }
 
-        return $maiorId + 1;
+        return max(array_column($this->dados, 'id')) + 1;
     }
 
     private function emailExiste(string $email): bool {
@@ -55,6 +53,18 @@ class Database {
         return false;
     }
 
+    private function hidratarUsuario(array $dados): Usuario {
+        return new Usuario(
+            $dados['id'],
+            $dados['nome'],
+            $dados['email'],
+            $dados['senha'],
+            $dados['intervalo'],
+            $dados['streak'],
+            new DateTime($dados['ultimoGole'])
+        );
+    }
+
     public function adicionarUsuario(array $dadosUsuario): Usuario {
         if (!isset($dadosUsuario['nome'], $dadosUsuario['email'], $dadosUsuario['senha'])) {
             throw new Exception("Campos Obrigatórios: Nome, Email e Senha.");
@@ -65,7 +75,6 @@ class Database {
         }
 
         $id = $this->getProximoId();
-
         $senhaHash = password_hash($dadosUsuario['senha'], PASSWORD_DEFAULT);
 
         $usuario = new Usuario(
@@ -73,9 +82,9 @@ class Database {
             $dadosUsuario['nome'],
             $dadosUsuario['email'],
             $senhaHash,
-            0, // intervalo
-            0, // streak
-            new DateTime('1970-01-01 00:00:00') // último gole zerado
+            0,
+            0,
+            new DateTime('1970-01-01 00:00:00')
         );
 
         $this->dados[] = $usuario->toArray();
@@ -84,33 +93,33 @@ class Database {
         return $usuario;
     }
 
-    public function getUsuarioEspecifico($metodo): ?Usuario {
-        foreach ($this->dados as $usuario) {
-            if (is_int($metodo) && isset($usuario['id']) && $usuario['id'] === $metodo) {
-                return new Usuario(
-                    $usuario['id'],
-                    $usuario['nome'],
-                    $usuario['email'],
-                    $usuario['senha'],
-                    $usuario['intervalo'],
-                    $usuario['streak'],
-                    new DateTime($usuario['ultimoGole'])
-                );
-            } else if (is_string($metodo) && isset($usuario['email']) && $usuario['email'] === $metodo) {
-                return new Usuario(
-                    $usuario['id'],
-                    $usuario['nome'],
-                    $usuario['email'],
-                    $usuario['senha'],
-                    $usuario['intervalo'],
-                    $usuario['streak'],
-                    new DateTime($usuario['ultimoGole'])
-                );
+    public function getUsuarioPorId(int $id): ?Usuario {
+        foreach ($this->dados as $dados) {
+            if (isset($dados['id']) && $dados['id'] === $id) {
+                return $this->hidratarUsuario($dados);
             }
         }
-        
+
         return null;
-}
+    }
+
+    public function getUsuarioPorEmail(string $email): ?Usuario {
+        foreach ($this->dados as $dados) {
+            if (isset($dados['email']) && $dados['email'] === $email) {
+                return $this->hidratarUsuario($dados);
+            }
+        }
+
+        return null;
+    }
+
+    public function getUsuarioEspecifico(int|string $metodo): ?Usuario {
+        if (is_int($metodo)) {
+            return $this->getUsuarioPorId($metodo);
+        }
+
+        return $this->getUsuarioPorEmail($metodo);
+    }
 
     public function removerUsuario(int $id): bool {
         foreach ($this->dados as $i => $usuario) {
@@ -120,6 +129,7 @@ class Database {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -155,5 +165,3 @@ class Database {
         return false;
     }
 }
-
-?>
