@@ -9,21 +9,21 @@ require_once '../php/Registro.php';
 $erro = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = $_POST['nome'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $senha = $_POST['senha'] ?? '';
+    $nome     = $_POST['nome']            ?? '';
+    $email    = $_POST['email']           ?? '';
+    $senha    = $_POST['senha']           ?? '';
     $confirmar = $_POST['confirmar_senha'] ?? '';
 
     if ($senha !== $confirmar) {
         $erro = "As Senhas Não Coincidem.";
     } else {
         try {
-            $db = new Database();
+            $db      = new Database();
             $registro = new Registro($db);
-            $usuario = $registro->registrar($nome, $email, $senha);
+            $usuario  = $registro->registrar($nome, $email, $senha);
 
-            $_SESSION['usuario_id'] = $usuario->getId();
-            $_SESSION['usuario_nome'] = $usuario->getNome();
+            $_SESSION['user_id']   = $usuario->getId();
+            $_SESSION['user_nome'] = $usuario->getNome();
 
             header("Location: dashboard.php");
             exit;
@@ -66,7 +66,7 @@ include("../includes/header.php");
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Senha</label>
-                                <input type="password" name="senha" class="form-control" placeholder="*******" required">
+                                <input type="password" name="senha" class="form-control" placeholder="*******" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Confirmar Senha</label>
