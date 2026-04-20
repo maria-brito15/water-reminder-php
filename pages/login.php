@@ -7,49 +7,57 @@ require_once '../php/Login.php';
 
 $erro = "";
 
-$db = new Database();
+$db    = new Database();
 $login = new Login($db);
+
+const COOKIE_DURACAO = 30 * 24 * 60 * 60; // 30 dias
+
+function limparCookiesLogin(): void {
+    setcookie('user_email', '', time() - 3600, "/", "", true, true);
+    setcookie('user_hash',  '', time() - 3600, "/", "", true, true);
+}
 
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['user_email'], $_COOKIE['user_hash'])) {
     try {
-        $email = $_COOKIE['user_email'];
-        $hashCookie = $_COOKIE['user_hash'];
+        $usuario = $db->getUsuarioPorEmail($_COOKIE['user_email']);
 
-        $usuario = $db->getUsuarioEspecifico($email);
-        if ($usuario && password_verify($usuario->getSenha(), $hashCookie)) {
-            $_SESSION['user_id'] = $usuario->getId();
+        if ($usuario && password_verify($usuario->getSenha(), $_COOKIE['user_hash'])) {
+            $_SESSION['user_id']   = $usuario->getId();
             $_SESSION['user_nome'] = $usuario->getNome();
 
             header("Location: dashboard.php");
             exit;
         } else {
-            setcookie('user_email', '', time() - 3600, "/");
-            setcookie('user_hash', '', time() - 3600, "/");
+            limparCookiesLogin();
         }
     } catch (Exception $e) {
-        setcookie('user_email', '', time() - 3600, "/");
-        setcookie('user_hash', '', time() - 3600, "/");
+        limparCookiesLogin();
     }
 }
 
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
+    $email = trim($_POST['email'] ?? '');
     $senha = $_POST['senha'] ?? '';
 
     try {
         $user = $login->autenticar($email, $senha);
 
-        $_SESSION['user_id'] = $user->getId();
+        $_SESSION['user_id']   = $user->getId();
         $_SESSION['user_nome'] = $user->getNome();
 
         if (isset($_POST['remember'])) {
-            setcookie('user_email', $email, time() + (5 * 24 * 60 * 60), "/");
-
+            $expiracao    = time() + COOKIE_DURACAO;
             $hashParaCookie = password_hash($user->getSenha(), PASSWORD_DEFAULT);
-            setcookie('user_hash', $hashParaCookie, time() + (30 * 24 * 60 * 60), "/");
+
+            setcookie('user_email', $email,         $expiracao, "/", "", true, true);
+            setcookie('user_hash',  $hashParaCookie, $expiracao, "/", "", true, true);
         } else {
-            setcookie('user_email', '', time() - 3600, "/");
-            setcookie('user_hash', '', time() - 3600, "/");
+            limparCookiesLogin();
         }
 
         header("Location: dashboard.php");
