@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 require_once 'Database.php';
 
@@ -10,18 +10,16 @@ class Login {
     }
 
     public function autenticar(string $email, string $senha): Usuario {
-        $usuario = $this->db->getUsuarioEspecifico($email);
+        $usuario = $this->db->getUsuarioPorEmail($email);
 
         if (!$usuario) {
-            throw new Exception("Usuário não Encontrado.");
+            throw new Exception("Email ou Senha incorretos.");
         }
 
         if (!password_verify($senha, $usuario->getSenha())) {
-            throw new Exception("Senha Incorreta.");
+            throw new Exception("Email ou Senha incorretos.");
         }
 
         return $usuario;
     }
 }
-
-?>
