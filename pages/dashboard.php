@@ -13,117 +13,110 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$db = new Database();
-$usuario = $db->getUsuarioEspecifico($_SESSION['user_id']);
+$db      = new Database();
+$usuario = $db->getUsuarioPorId($_SESSION['user_id']);
 
 if (!$usuario) {
     echo "Usuário Não Encontrado.";
     exit;
 }
 
-$erro = "";
+$erro    = "";
 $sucesso = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['beber_agua'])) {
     try {
+        $agora = new DateTime('now', new DateTimeZone('America/Sao_Paulo'));
+
         $streak = new Streak(
             $usuario->getStreak(),
             $usuario->getIntervalo(),
             $usuario->getUltimoGole()
         );
-        
-        $agoraFixo = new DateTime('now', new DateTimeZone('America/Sao_Paulo'));
-        
-        if ($streak->verificarSeStreakQuebrou() && $usuario->getUltimoGole()->format('Y') != '1970') {
-            $streak->zerarStreak();
-            $db->atualizarUsuarioStreak($_SESSION['user_id'], 1);
-            $db->atualizarUsuarioUltimoGole($_SESSION['user_id'], $agoraFixo);
 
-            $sucesso = "Água Registrada! Streak Resetado Devido ao Tempo. 💧";
+        if ($streak->isPrimeiroBeber()) {
+            $novoStreak = 1;
+        } elseif ($streak->verificarSeStreakQuebrou()) {
+            $novoStreak = 1;
+            $sucesso    = "Água Registrada! Streak Resetado Devido ao Tempo. 💧";
         } else {
-            $novoStreak = $usuario->getStreak();
-            $ultimoGole = $usuario->getUltimoGole();
+            $novoStreak    = $usuario->getStreak();
+            $diffSegundos  = $agora->getTimestamp() - $usuario->getUltimoGole()->getTimestamp();
 
-            if ($ultimoGole->format('Y') == '1970') {
-                $novoStreak = 1;
-            } else {
-                $diffSegundos = $agoraFixo->getTimestamp() - $ultimoGole->getTimestamp();
-                
-                if ($diffSegundos >= 3600) {
-                    $novoStreak++;
-                }
+            if ($diffSegundos >= 3600) {
+                $novoStreak++;
             }
-            
-            $db->atualizarUsuarioStreak($_SESSION['user_id'], $novoStreak);
-            $db->atualizarUsuarioUltimoGole($_SESSION['user_id'], $agoraFixo);
+        }
+
+        $db->atualizarUsuarioStreak($_SESSION['user_id'], $novoStreak);
+        $db->atualizarUsuarioUltimoGole($_SESSION['user_id'], $agora);
+
+        if (empty($sucesso)) {
             $sucesso = "Água Registrada com Sucesso! 💧";
         }
-        
-        $usuario = $db->getUsuarioEspecifico($_SESSION['user_id']);
-        
+
+        $usuario = $db->getUsuarioPorId($_SESSION['user_id']);
+
     } catch (Exception $e) {
         $erro = $e->getMessage();
     }
 }
 
-$nome = $usuario->getNome();
+$nome              = $usuario->getNome();
 $intervaloSegundos = $usuario->getIntervalo();
-$streak = $usuario->getStreak();
+$streak            = $usuario->getStreak();
 
-$ultimoGoleFixo = $usuario->getUltimoGole();
-$ultimoGoleFixo->setTimezone(new DateTimeZone('America/Sao_Paulo'));
+$ultimoGole = $usuario->getUltimoGole();
+$ultimoGole->setTimezone(new DateTimeZone('America/Sao_Paulo'));
 
-$streakObj = new Streak($streak, $intervaloSegundos, $ultimoGoleFixo);
-
-$proximoLembreteFixo = null;
-if ($ultimoGoleFixo->format('Y') != 1970) {
-    $proximoLembreteFixo = clone $ultimoGoleFixo;
-    $proximoLembreteFixo->add(new DateInterval('PT' . $intervaloSegundos . 'S'));
-}
+$streakObj     = new Streak($streak, $intervaloSegundos, $ultimoGole);
+$streakQuebrado = $streakObj->verificarSeStreakQuebrou();
 
 $agora = new DateTime('now', new DateTimeZone('America/Sao_Paulo'));
-$deveBeberAgua = false;
-$tempoRestante = "";
 
-if ($proximoLembreteFixo) {
-    if ($agora >= $proximoLembreteFixo) {
+$proximoLembrete = null;
+$deveBeberAgua   = false;
+$tempoRestante   = "";
+
+if (!$streakObj->isPrimeiroBeber()) {
+    $proximoLembrete = clone $ultimoGole;
+    $proximoLembrete->add(new DateInterval('PT' . $intervaloSegundos . 'S'));
+
+    if ($agora >= $proximoLembrete) {
         $deveBeberAgua = true;
     } else {
-        $diffSegundos = $proximoLembreteFixo->getTimestamp() - $agora->getTimestamp();
-        $horas = floor($diffSegundos / 3600);
-        $minutos = floor(($diffSegundos % 3600) / 60);
-        
-        if ($horas > 0) {
-            $tempoRestante = sprintf('%dh %02dm', $horas, $minutos);
-        } else {
-            $tempoRestante = sprintf('%dm', $minutos);
-        }
+        $diffSegundos  = $proximoLembrete->getTimestamp() - $agora->getTimestamp();
+        $horas         = floor($diffSegundos / 3600);
+        $minutos       = floor(($diffSegundos % 3600) / 60);
+        $tempoRestante = $horas > 0
+            ? sprintf('%dh %02dm', $horas, $minutos)
+            : sprintf('%dm', $minutos);
     }
 } else {
     $deveBeberAgua = true;
 }
 
-$intervaloTexto = "";
-
-if ($intervaloSegundos < 60) {
-    $intervaloTexto = $intervaloSegundos . " segundos";
-} else if ($intervaloSegundos < 3600) {
-    $minutos = $intervaloSegundos / 60;
-    $intervaloTexto = intval($minutos) . " minutos";
-} else {
-    $horas = $intervaloSegundos / 3600;
-    if ($horas == 1) {
-        $intervaloTexto = "1 hora";
-    } else if ($horas == floor($horas)) {
-        $intervaloTexto = intval($horas) . " horas";
-    } else {
-        $horasInt = floor($horas);
-        $minutosRestantes = ($horas - $horasInt) * 60;
-        $intervaloTexto = $horasInt . "h " . intval($minutosRestantes) . "m";
+function formatarIntervalo(int $segundos): string {
+    if ($segundos < 60) {
+        return $segundos . " segundos";
     }
+
+    if ($segundos < 3600) {
+        return intval($segundos / 60) . " minutos";
+    }
+
+    $horas   = $segundos / 3600;
+    $horasInt = (int) floor($horas);
+    $minutos  = (int) round(($horas - $horasInt) * 60);
+
+    if ($minutos === 0) {
+        return $horasInt === 1 ? "1 hora" : "{$horasInt} horas";
+    }
+
+    return "{$horasInt}h {$minutos}m";
 }
 
-$streakQuebrado = $streakObj->verificarSeStreakQuebrou() && $ultimoGoleFixo->format('Y') != '1970';
+$intervaloTexto = formatarIntervalo($intervaloSegundos);
 
 include("../includes/header.php");
 ?>
@@ -173,15 +166,15 @@ include("../includes/header.php");
             <div class="col-lg-6">
                 <div class="card h-100 shadow-sm border-0">
                     <div class="card-body text-center p-5">
-                        <?php if ($deveBeberAgua || $ultimoGoleFixo->format('Y') == 1970): ?>
+                        <?php if ($deveBeberAgua || $streakObj->isPrimeiroBeber()): ?>
                             <div class="text-primary mb-4">
                                 <i class="bi bi-droplet-fill display-1"></i>
                             </div>
                             <h3 class="text-primary mb-3">
-                                <?= $ultimoGoleFixo->format('Y') == 1970 ? "Hora do primeiro gole!" : "Hora de beber água!" ?>
+                                <?= $streakObj->isPrimeiroBeber() ? "Hora do primeiro gole!" : "Hora de beber água!" ?>
                             </h3>
                             <p class="text-muted mb-4">
-                                <?php if ($ultimoGoleFixo->format('Y') == 1970): ?>
+                                <?php if ($streakObj->isPrimeiroBeber()): ?>
                                     Comece seu streak de hidratação agora!
                                 <?php else: ?>
                                     <?= $streakQuebrado ? "Seu streak quebrou, mas você pode começar um novo!" : "Já passou do seu horário de beber água." ?>
@@ -238,21 +231,19 @@ include("../includes/header.php");
                                     <i class="bi bi-clock-history text-info display-6 me-3"></i>
                                     <div class="text-start">
                                         <h6 class="mb-0 fw-semibold">
-                                            <?php if ($ultimoGoleFixo->format('Y') == 1970): ?>
+                                            <?php if ($streakObj->isPrimeiroBeber()): ?>
                                                 Nunca
                                             <?php else: ?>
-                                                <?= $ultimoGoleFixo->format('H:i') ?>
+                                                <?= $ultimoGole->format('H:i') ?>
                                             <?php endif; ?>
                                         </h6>
                                         <small class="text-muted">
-                                            <?php if ($ultimoGoleFixo->format('Y') != 1970): ?>
+                                            <?php if (!$streakObj->isPrimeiroBeber()): ?>
                                                 <?php
                                                 $hoje = new DateTime('now', new DateTimeZone('America/Sao_Paulo'));
-                                                if ($ultimoGoleFixo->format('Y-m-d') == $hoje->format('Y-m-d')) {
-                                                    echo "hoje";
-                                                } else {
-                                                    echo $ultimoGoleFixo->format('d/m/Y');
-                                                }
+                                                echo $ultimoGole->format('Y-m-d') === $hoje->format('Y-m-d')
+                                                    ? 'hoje'
+                                                    : $ultimoGole->format('d/m/Y');
                                                 ?>
                                             <?php endif; ?>
                                         </small>
@@ -270,8 +261,8 @@ include("../includes/header.php");
                                     <i class="bi bi-bell text-primary display-6 me-3"></i>
                                     <div class="text-start">
                                         <h6 class="mb-0 fw-semibold">
-                                            <?php if ($proximoLembreteFixo && !$deveBeberAgua): ?>
-                                                <?= $proximoLembreteFixo->format('H:i') ?>
+                                            <?php if ($proximoLembrete && !$deveBeberAgua): ?>
+                                                <?= $proximoLembrete->format('H:i') ?>
                                             <?php else: ?>
                                                 Agora!
                                             <?php endif; ?>
