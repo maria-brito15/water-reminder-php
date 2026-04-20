@@ -5,11 +5,16 @@ require_once 'Database.php';
 class Registro {
     private Database $db;
 
+    private const SENHA_MINIMA = 6;
+
     public function __construct(Database $db) {
         $this->db = $db;
     }
 
     public function registrar(string $nome, string $email, string $senha): Usuario {
+        $nome  = trim($nome);
+        $email = trim($email);
+
         if (empty($nome) || empty($email) || empty($senha)) {
             throw new Exception("Nome, Email e Senha são Obrigatórios.");
         }
@@ -18,12 +23,14 @@ class Registro {
             throw new Exception("Email Inválido.");
         }
 
+        if (strlen($senha) < self::SENHA_MINIMA) {
+            throw new Exception("A senha deve ter pelo menos " . self::SENHA_MINIMA . " caracteres.");
+        }
+
         return $this->db->adicionarUsuario([
-            'nome' => $nome,
+            'nome'  => $nome,
             'email' => $email,
-            'senha' => $senha
+            'senha' => $senha,
         ]);
     }
 }
-
-?>
